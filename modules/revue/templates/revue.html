@@ -105,13 +105,13 @@ td:first-child, th:first-child {
 <h3>Filtre par NIU, CRI ou UG</h3>
 
 <input type="text" id="niu" placeholder="NIU">
-<select id="cri"></select>
-<select id="centre"></select>
+<select id="cri" placeholder="CRI"></select>
+<select id="centre" placeholder="UG"></select>
 
 <br><br>
 
 <!-- 🔥 NOUVEAU -->
-<input type="text" id="cle" placeholder="Mot-clé fichier (CLE)">
+<input type="text" id="cle" placeholder="Mot-clé fichier">
 
 <br><br>
 
@@ -133,9 +133,9 @@ td:first-child, th:first-child {
                 <th>Fichier</th>
                 <th>Lignes</th>
                 <th>Écart</th>
-                <th>Taxe Princi</th>
-                <th>Taxe Pénal</th>
-                <th>Total</th>
+                <th>Principal des taxes</th>
+                <th>Pénalités</th>
+                <th>Total des taxes</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -229,12 +229,12 @@ function afficherSynthese(r){
     document.getElementById("blocSynthese").style.display = "block";
 
     document.getElementById("resume").innerHTML = `
-        <b>Total lignes :</b> ${format(s.total_lignes)}<br>
-        <b>Total fichiers :</b> ${format(s.total_fichiers)}<br>
-        <b>Total écart :</b> ${format(s.total_ecart)}<br>
-        <b>Total taxe principal :</b> ${format(s.total_tax_princi)}<br>
-        <b>Total pénalité :</b> ${format(s.total_tax_penal)}<br>
-        <b>Total global :</b> ${format(s.total_tax_total)}
+        <b>Nombre de cas :</b> ${format(s.total_lignes)}<br>
+        <b>Nombre de croisements :</b> ${format(s.total_fichiers)}<br>
+        <b>Ecart global :</b> ${format(s.total_ecart)}<br>
+        <b>Principal des impots et taxes :</b> ${format(s.total_tax_princi)}<br>
+        <b>Pénalités :</b> ${format(s.total_tax_penal)}<br>
+        <b>Total des impots et taxes  :</b> ${format(s.total_tax_total)}
     `;
 
     const tbody = document.querySelector("#tableDetail tbody");
