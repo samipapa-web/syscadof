@@ -5,14 +5,9 @@
 <title>SYSCADOF - Revue</title>
 
 <style>
-/* ============================
-   Structure générale
-============================ */
 html, body { margin:0; padding:0; font-family: Arial; background:#f3f4f6; }
 
-/* ============================
-   Bannière
-============================ */
+/* Bannière */
 .banniere-container {
     position: fixed;
     top:0; left:0; width:100%;
@@ -20,16 +15,12 @@ html, body { margin:0; padding:0; font-family: Arial; background:#f3f4f6; }
 }
 .banniere-container img {
     width:100%;
-    height:auto;
-    display:block;
 }
 
 /* Variable dynamique */
 :root { --banner-height:0px; }
 
-/* ============================
-   Sidebar
-============================ */
+/* Sidebar */
 .sidebar {
     position: fixed;
     top: var(--banner-height);
@@ -37,7 +28,6 @@ html, body { margin:0; padding:0; font-family: Arial; background:#f3f4f6; }
     bottom:0;
     width:110px;
     background:#1e293b;
-    padding-top:10px;
 }
 .sidebar a {
     display:block;
@@ -49,18 +39,14 @@ html, body { margin:0; padding:0; font-family: Arial; background:#f3f4f6; }
     border-radius:4px;
 }
 
-/* ============================
-   Contenu principal
-============================ */
+/* Contenu */
 .main {
     margin-left:110px;
     padding:20px;
     padding-top: calc(20px + var(--banner-height));
 }
 
-/* ============================
-   Bouton
-============================ */
+/* Bouton */
 button {
     background:#2099b6;
     color:white;
@@ -68,66 +54,112 @@ button {
     padding:8px;
     cursor:pointer;
 }
-button:hover {
-    background:#167d94;
+button:hover { background:#167d94; }
+
+/* Synthèse */
+.synthese {
+    margin-top:20px;
+    background:white;
+    padding:15px;
+    border-radius:6px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
+/* Tableau */
+table {
+    width:100%;
+    border-collapse: collapse;
+    margin-top:10px;
+}
+th, td {
+    border:1px solid #ddd;
+    padding:6px;
+    text-align:right;
+}
+th {
+    background:#127291;
+    color:white;
+}
+td:first-child, th:first-child {
+    text-align:left;
+}
 </style>
 </head>
 
 <body>
 
-<!-- ============================
-     Bannière
-============================ -->
+<!-- Bannière -->
 <div class="banniere-container">
-    <img src="{{ url_for('static', filename='images/revue.jpg') }}" alt="Revue">
+    <img src="{{ url_for('static', filename='images/revue.jpg') }}">
 </div>
 
-<!-- ============================
-     Sidebar
-============================ -->
+<!-- Sidebar -->
 <aside class="sidebar">
     <a href="/">Accueil</a>
     <a href="/revue">Revue</a>
 </aside>
 
-<!-- ============================
-     Contenu principal
-============================ -->
+<!-- Contenu -->
 <div class="main">
 
-<h3>Revue des risques par structure ou NIU</h3>
+<h3>Filtrage</h3>
 
+<input type="text" id="niu" placeholder="NIU">
 <select id="cri"></select>
 <select id="centre"></select>
-<input type="text" id="niu" placeholder="NIU">
+
+<br><br>
+
+<!-- 🔥 NOUVEAU -->
+<input type="text" id="cle" placeholder="Mot-clé fichier (CLE)">
+
+<br><br>
 
 <button onclick="executer()">Executer</button>
 
 <div id="log"></div>
 
+<!-- ========================= -->
+<!-- 🔥 SYNTHESE -->
+<!-- ========================= -->
+<div id="blocSynthese" class="synthese" style="display:none;">
+    <h3>📊 Synthèse globale</h3>
+    <div id="resume"></div>
+
+    <h4>Détail par fichier</h4>
+    <table id="tableDetail">
+        <thead>
+            <tr>
+                <th>Fichier</th>
+                <th>Lignes</th>
+                <th>Écart</th>
+                <th>Taxe Princi</th>
+                <th>Taxe Pénal</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
 </div>
 
 <script>
 
-// ============================
-// Ajustement dynamique bannière
-// ============================
+// Bannière dynamique
 function adjustLayout() {
     const banner = document.querySelector(".banniere-container");
     if (banner) {
-        const height = banner.offsetHeight + "px";
-        document.documentElement.style.setProperty("--banner-height", height);
+        document.documentElement.style.setProperty(
+            "--banner-height",
+            banner.offsetHeight + "px"
+        );
     }
 }
-
 window.addEventListener("load", adjustLayout);
 window.addEventListener("resize", adjustLayout);
 
-// ============================
-// Initialisation
-// ============================
+// Init
 document.addEventListener("DOMContentLoaded", async () => {
     const res = await fetch("/revue/api/init");
     const data = await res.json();
@@ -136,27 +168,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     remplir("centre", data.centres);
 });
 
-// ============================
-// Remplir select
-// ============================
 function remplir(id, data){
     const el = document.getElementById(id);
     el.innerHTML = "<option value=''>--</option>";
     data.forEach(x => el.innerHTML += `<option>${x}</option>`);
 }
 
-// ============================
-// Exécution
-// ============================
+// Format nombre
+function format(n){
+    return Number(n || 0).toLocaleString("fr-FR");
+}
+
+// EXECUTION
 async function executer(){
+
     const payload = {
         niu: document.getElementById("niu").value,
         cri: document.getElementById("cri").value,
-        centre: document.getElementById("centre").value
+        centre: document.getElementById("centre").value,
+        cle: document.getElementById("cle").value
     };
 
     const log = document.getElementById("log");
     log.innerText = "⏳ traitement...";
+
+    document.getElementById("blocSynthese").style.display = "none";
 
     const res = await fetch("/revue/api/run", {
         method:"POST",
@@ -167,14 +203,55 @@ async function executer(){
     const r = await res.json();
 
     if(r.success){
+
         log.innerHTML = `
             ✅ ${r.message}<br><br>
             <a href="/revue/download/${r.excel}" target="_blank">📥 Excel</a><br>
             <a href="/revue/download/${r.docx}" target="_blank">📄 Word</a>
         `;
+
+        // 🔥 AFFICHAGE SYNTHESE
+        afficherSynthese(r);
+
     } else {
         log.innerText = "❌ " + r.message;
     }
+}
+
+// ============================
+// 🔥 AFFICHAGE SYNTHESE
+// ============================
+function afficherSynthese(r){
+
+    const s = r.synthese;
+    const detail = r.detail_par_fichier;
+
+    document.getElementById("blocSynthese").style.display = "block";
+
+    document.getElementById("resume").innerHTML = `
+        <b>Total lignes :</b> ${format(s.total_lignes)}<br>
+        <b>Total fichiers :</b> ${format(s.total_fichiers)}<br>
+        <b>Total écart :</b> ${format(s.total_ecart)}<br>
+        <b>Total taxe principal :</b> ${format(s.total_tax_princi)}<br>
+        <b>Total pénalité :</b> ${format(s.total_tax_penal)}<br>
+        <b>Total global :</b> ${format(s.total_tax_total)}
+    `;
+
+    const tbody = document.querySelector("#tableDetail tbody");
+    tbody.innerHTML = "";
+
+    detail.forEach(d => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${d.FICHIER}</td>
+                <td>${format(d.lignes)}</td>
+                <td>${format(d.ecart)}</td>
+                <td>${format(d.tax_princi)}</td>
+                <td>${format(d.tax_penal)}</td>
+                <td>${format(d.tax_total)}</td>
+            </tr>
+        `;
+    });
 }
 
 </script>
