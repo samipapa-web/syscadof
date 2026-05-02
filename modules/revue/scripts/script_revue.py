@@ -1,9 +1,6 @@
 # \modules\revue\scripts\script_revue.py
 # -------------------------------------------------------
 
-# \modules\revue\scripts\script_revue.py
-# -------------------------------------------------------
-
 import os
 import pandas as pd
 from datetime import datetime
