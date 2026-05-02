@@ -117,16 +117,20 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir, cle=None):
             tax_total=("TAX_TOTAL", "sum")
         )
         .reset_index()
-        .to_dict(orient="records")
     )
 
+    for col in ["ecart", "tax_princi", "tax_penal", "tax_total"]:
+        synthese_par_fichier[col] = synthese_par_fichier[col].round(0)
+    
+    synthese_par_fichier = synthese_par_fichier.to_dict(orient="records")
+
     synthese = {
-        "total_lignes": len(df_final),
-        "total_fichiers": df_final["FICHIER"].nunique(),
-        "total_ecart": float(df_final["ECART_NOTIF"].sum()),
-        "total_tax_princi": float(df_final["TAX_PRINCI"].sum()),
-        "total_tax_penal": float(df_final["TAX_PENAL"].sum()),
-        "total_tax_total": float(df_final["TAX_TOTAL"].sum()),
+        "total_lignes": int(len(df_final)),
+        "total_fichiers": int(df_final["FICHIER"].nunique()),
+        "total_ecart": round(float(df_final["ECART_NOTIF"].sum()), 0),
+        "total_tax_princi": round(float(df_final["TAX_PRINCI"].sum()), 0),
+        "total_tax_penal": round(float(df_final["TAX_PENAL"].sum()), 0),
+        "total_tax_total": round(float(df_final["TAX_TOTAL"].sum()), 0),
     }
 
     # =========================
