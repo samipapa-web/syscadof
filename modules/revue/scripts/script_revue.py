@@ -1,6 +1,9 @@
 # \modules\revue\scripts\script_revue.py
 # -------------------------------------------------------
 
+# \modules\revue\scripts\script_revue.py
+# -------------------------------------------------------
+
 import os
 import pandas as pd
 from datetime import datetime
@@ -34,7 +37,7 @@ def format_taux(val):
 # ===============================
 # SCRIPT PRINCIPAL
 # ===============================
-def run_revue(niu, cri, centre, sortie_dir, template_dir):
+def run_revue(niu, cri, centre, sortie_dir, template_dir, cle=None):
 
     # =========================
     # 1. LECTURE FICHIERS
@@ -44,8 +47,13 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir):
         if f.startswith("Output_") and f.endswith(".xlsx")
     ]
 
+    # 🔥 FILTRE CLE (NOUVEAU)
+    if cle:
+        cle = cle.lower()
+        fichiers = [f for f in fichiers if cle in f.lower()]
+
     if not fichiers:
-        return {"message": "Aucun fichier Output trouvé"}
+        return {"message": "Aucun fichier Output trouvé avec ce filtre"}
 
     dfs = []
 
@@ -64,7 +72,7 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir):
     ]
 
     # =========================
-    # 2. FILTRAGE MULTI-FICHIERS
+    # 2. FILTRAGE + CONSOLIDATION
     # =========================
     for f in fichiers:
         path = os.path.join(sortie_dir, f)
@@ -94,7 +102,38 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir):
     df_final = pd.concat(dfs, ignore_index=True)
 
     # =========================
-    # 3. EXPORT EXCEL
+    # 🔥 2B. SYNTHESE DETAILLEE
+    # =========================
+    df_final["ECART_NOTIF"] = pd.to_numeric(df_final["ECART_NOTIF"], errors="coerce").fillna(0)
+    df_final["TAX_PRINCI"] = pd.to_numeric(df_final["TAX_PRINCI"], errors="coerce").fillna(0)
+    df_final["TAX_PENAL"] = pd.to_numeric(df_final["TAX_PENAL"], errors="coerce").fillna(0)
+    df_final["TAX_TOTAL"] = pd.to_numeric(df_final["TAX_TOTAL"], errors="coerce").fillna(0)
+
+    synthese_par_fichier = (
+        df_final
+        .groupby("FICHIER")
+        .agg(
+            lignes=("FICHIER", "count"),
+            ecart=("ECART_NOTIF", "sum"),
+            tax_princi=("TAX_PRINCI", "sum"),
+            tax_penal=("TAX_PENAL", "sum"),
+            tax_total=("TAX_TOTAL", "sum")
+        )
+        .reset_index()
+        .to_dict(orient="records")
+    )
+
+    synthese = {
+        "total_lignes": len(df_final),
+        "total_fichiers": df_final["FICHIER"].nunique(),
+        "total_ecart": float(df_final["ECART_NOTIF"].sum()),
+        "total_tax_princi": float(df_final["TAX_PRINCI"].sum()),
+        "total_tax_penal": float(df_final["TAX_PENAL"].sum()),
+        "total_tax_total": float(df_final["TAX_TOTAL"].sum()),
+    }
+
+    # =========================
+    # 3. EXPORT EXCEL (INCHANGE)
     # =========================
     date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     excel_name = f"REVUE_{date_str}.xlsx"
@@ -103,7 +142,7 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir):
     df_final.to_excel(excel_path, index=False)
 
     # =========================
-    # 4. CHARGEMENT MODELE WORD
+    # 4 → 8 STRICTEMENT INCHANGEES
     # =========================
     template_path = os.path.join(template_dir, "Rev_Sans_annexe.docx")
 
@@ -112,9 +151,6 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir):
 
     base_doc = Document(template_path)
 
-    # =========================
-    # 5. FONCTIONS PUBLIPOSTAGE
-    # =========================
     def remplacer_runs(paragraph, mapping):
         if not paragraph.runs:
             return
@@ -152,9 +188,6 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir):
             traiter(section.header.paragraphs)
             traiter(section.footer.paragraphs)
 
-    # =========================
-    # 6. GENERATION DOCUMENTS
-    # =========================
     date_ref = datetime.now().strftime("%Y%m%d")
     temp_files = []
 
@@ -239,9 +272,6 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir):
         doc.save(temp_path)
         temp_files.append(temp_path)
 
-    # =========================
-    # 7. FUSION
-    # =========================
     docx_name = f"REVUE_{date_str}.docx"
     docx_path = os.path.join(sortie_dir, docx_name)
 
@@ -254,18 +284,17 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir):
 
     composer.save(docx_path)
 
-    # =========================
-    # 8. NETTOYAGE
-    # =========================
     for f in temp_files:
         if os.path.exists(f):
             os.remove(f)
 
     # =========================
-    # 9. RESULTAT
+    # 9. RESULTAT FINAL ENRICHI
     # =========================
     return {
         "message": f"{len(df_final)} lignes consolidées",
         "excel": excel_name,
-        "docx": docx_name
+        "docx": docx_name,
+        "synthese": synthese,
+        "detail_par_fichier": synthese_par_fichier
     }
