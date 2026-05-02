@@ -145,7 +145,7 @@ def run_revue(niu, cri, centre, sortie_dir, template_dir, cle=None):
     # =========================
     # 4 → 8 STRICTEMENT INCHANGEES
     # =========================
-    template_path = os.path.join(template_dir, "Rev_Sans_annexe.docx")
+    template_path = os.path.join(template_dir, "Revue.docx")
 
     if not os.path.exists(template_path):
         return {"message": "❌ Modèle revue.docx introuvable"}
