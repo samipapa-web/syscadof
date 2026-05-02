@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Fichier - {{ filename }}</title>
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+
+<!-- jQuery + DataTables JS -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #f3f4f6;
+}
+
+/* =========================
+BANNIÈRE
+========================= */
+.banniere-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+}
+.banniere-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* =========================
+SIDEBAR
+========================= */
+.sidebar {
+    position: fixed;
+    left: 0;
+    width: 110px;
+    background-color: #1e293b;
+    padding-top: 20px;
+    overflow-y: auto;
+    z-index: 9;
+}
+
+/* =========================
+CONTENU PRINCIPAL
+========================= */
+.main-content {
+    margin-left: 110px;
+    padding: 20px;
+    overflow-x: auto;
+    margin-top: 0; /* ajusté dynamiquement */
+}
+
+/* =========================
+SIDEBAR LINKS
+========================= */
+.sidebar a {
+    display: block;
+    margin: 10px;
+    padding: 10px 5px;
+    text-align: center;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 4px;
+    background-color: #127291;
+    font-size: 12px;
+}
+.sidebar a:hover {
+    background-color: #0d5a72;
+}
+
+/* =========================
+TITRE
+========================= */
+h2 {
+    margin: 0 0 10px 0;
+    color: #1f2937;
+    font-size: 1.2rem;
+}
+
+/* =========================
+TABLEAU
+========================= */
+table.dataTable thead th {
+    background: #2099b6;
+    color: white;
+    max-width: 10vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+table {
+    border-collapse: collapse;
+    min-width: 100%;
+    width: max-content;
+}
+th, td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+    text-align: right;
+    max-width: 10vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+th {
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+td:first-child,
+th:first-child {
+    text-align: left;
+}
+tr:nth-child(even) td {
+    background: #f9f9f9;
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================
+BANNIÈRE
+========================= -->
+<div class="banniere-container">
+    <img id="banniere-img" src="{{ url_for('static', filename='images/tableau.jpg') }}">
+</div>
+
+<!-- =========================
+SIDEBAR
+========================= -->
+<aside class="sidebar">
+    <a href="/">Accueil</a>
+    {% if modules.get("Ingestion") %}<a href="/ingestion">Ingestion</a>{% endif %}
+    {% if modules.get("Apurement") %}<a href="/traitement/editor">Apurement</a>{% endif %}
+    {% if modules.get("Croisement") %}<a href="/analyse">Croisement</a>{% endif %}
+    {% if modules.get("Orientation") %}<a href="/exploitation">Orientation</a>{% endif %}
+    {% if modules.get("Valorisation") %}<a href="/valorisation">Valorisation</a>{% endif %}
+    {% if modules.get("Restitution") %}<a href="/notification">Restitution</a>{% endif %}
+    <a href="{{ url_for('traitement.download_sortie', filename=filename) }}">Exporter</a>
+</aside>
+
+<!-- =========================
+CONTENU PRINCIPAL
+========================= -->
+<main class="main-content">
+    <h2>Fichier : {{ filename }}</h2>
+    <div class="table-container">
+        <table id="tableur" class="display nowrap" style="width:100%">
+            <thead>
+                <tr>
+                    {% for col in columns %}
+                    <th>{{ col | replace("'", "\\'") }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</main>
+
+<!-- =========================
+SCRIPT
+========================= -->
+<script>
+$(document).ready(function() {
+
+    function ajusterLayout() {
+        let bannerHeight = $('#banniere-img').outerHeight();
+
+        $('.sidebar').css({
+            top: bannerHeight + 'px',
+            height: 'calc(100% - ' + bannerHeight + 'px)'
+        });
+
+        $('.main-content').css('margin-top', bannerHeight + 'px');
+    }
+
+    $('#banniere-img').on('load', ajusterLayout);
+    $(window).resize(ajusterLayout);
+    if ($('#banniere-img')[0].complete) { ajusterLayout(); }
+
+    $('#tableur').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "/traitement/api/tableur-data/{{ filename }}",
+            type: "GET"
+        },
+        pageLength: 100,
+        lengthMenu: [[100, 200, 500], [100, 200, 500]],
+        language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json" },
+        scrollX: true,
+        autoWidth: false,
+        dom: 'Bfrtip',
+        buttons: ['copy', 'excel', 'pdf'],
+
+        columns: [
+            {% for col in columns %}
+            { data: "{{ col | replace("'", "\\'") }}" }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+
+        // =========================
+        // Formatage et alignement
+        // =========================
+        columnDefs: [
+            {
+                targets: '_all',
+                createdCell: function(td, cellData) {
+                    if (!isNaN(cellData) && cellData !== null && cellData !== '') {
+                        $(td).text(Number(cellData).toLocaleString('fr-FR', { maximumFractionDigits: 2 }));
+                        $(td).css('text-align', 'right');
+                    } else {
+                        $(td).css('text-align', 'left');
+                    }
+                }
+            }
+        ],
+
+        createdRow: function(row, data) {
+            $('td', row).each(function() {
+                $(this).attr('title', $(this).text());
+            });
+        }
+    });
+});
+</script>
+
+</body>
+</html>

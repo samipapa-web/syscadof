@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+<meta charset="UTF-8">
+<title>SYSCADOF - Ingestion</title>
+
+<style>
+html, body { margin:0; padding:0; font-family: Arial,sans-serif; background:#f3f4f6; }
+.banniere-container { position: fixed; top:0; left:0; width:100%; z-index:1000; }
+.banniere-container img { width:100%; height:auto; display:block; }
+:root { --banner-height: 0px; }
+
+.sidebar {
+    position: fixed;
+    top: var(--banner-height);
+    left: 0;
+    bottom: 0;
+    width: 110px;
+    background-color: #1e293b;
+    overflow-y: auto;
+    padding-top: 10px;
+}
+.sidebar a {
+    display: block;
+    margin: 10px;
+    padding: 10px 5px;
+    text-align: center;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 4px;
+    background-color: #127291;
+    font-size: 12px;
+}
+.sidebar a:hover { background-color: #0d5a72; }
+
+.main-content {
+    margin-left: 110px;
+    padding: 20px;
+    padding-top: calc(20px + var(--banner-height));
+    overflow-x: auto;
+}
+h1 { color:#2099b6; }
+h2 { color:#1f2937; margin-top:30px; }
+label { font-weight:bold; }
+
+select, input[type="number"], input[type="file"] {
+    width:100%;
+    padding:6px;
+    margin:5px 0;
+    border:1px solid #ccc;
+    border-radius:4px;
+    box-sizing:border-box;
+}
+button {
+    padding:6px 12px;
+    background:#2099b6;
+    color:white;
+    border:none;
+    cursor:pointer;
+    border-radius:4px;
+    margin-top:5px;
+}
+button:hover { background:#167d94; }
+
+.form-grid { display:flex; flex-direction:column; gap:12px; margin-top:15px; margin-bottom:15px; }
+.form-row { display:grid; grid-template-columns:230px 1fr; align-items:center; gap:15px; }
+
+table {
+    width:100%;
+    border-collapse: collapse;
+    margin-top:20px;
+    background:white;
+}
+th { background:#2099b6; color:white; padding:10px; text-align:center; }
+td { padding:8px; border-bottom:1px solid #ddd; text-align:left; }
+.separator { border:none; border-top:2px solid #2099b6; margin:40px 0 10px 0; }
+.open-btn {
+    display:inline-block;
+    padding:4px 8px;
+    background-color:#2099b6;
+    color:white;
+    border-radius:4px;
+    text-decoration:none;
+    font-size:0.9rem;
+}
+.open-btn:hover { background-color:#167d94; }
+#message { margin-top:10px; font-weight:bold; color:red; }
+
+</style>
+</head>
+
+<body>
+
+<div class="banniere-container">
+    <img src="{{ url_for('static', filename='images/ingestion.jpg') }}" alt="Ingestion">
+</div>
+
+<aside class="sidebar">
+    <a href="/">Accueil</a>
+    {% if modules.get("Ingestion") %}<a href="/ingestion">Ingestion</a>{% endif %}
+    {% if modules.get("Apurement") %}<a href="/traitement/editor">Apurement</a>{% endif %}
+    {% if modules.get("Croisement") %}<a href="/analyse">Croisement</a>{% endif %}
+    {% if modules.get("Orientation") %}<a href="/exploitation">Orientation</a>{% endif %}
+    {% if modules.get("Valorisation") %}<a href="/valorisation">Valorisation</a>{% endif %}
+    {% if modules.get("Restitution") %}<a href="/notification">Restitution</a>{% endif %}
+</aside>
+
+<main class="main-content">
+<h1>INGESTION DES SOURCES DE DONNÉES</h1>
+
+<div class="form-grid">
+<form id="form-ingestion">
+    <div class="form-row">
+        <label for="fournisseur">Fournisseur</label>
+        <select id="fournisseur" required>
+            <option value="">-- Sélectionner --</option>
+            {% for f in fournisseurs %}
+            <option value="{{ f }}">{{ f }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="source_id">Intitulé de la source</label>
+        <select id="source_id" name="source_id" required></select>
+    </div>
+
+    <div class="form-row">
+        <label for="annee">Année</label>
+        <input type="number" id="annee" name="annee" min="2000" max="2100" required>
+    </div>
+
+    <div class="form-row">
+        <label for="mois">Mois (optionnel)</label>
+        <select id="mois" name="mois">
+            <option value="">--</option>
+            {% for m,v in [(1,'Janvier'),(2,'Février'),(3,'Mars'),(4,'Avril'),(5,'Mai'),(6,'Juin'),
+                          (7,'Juillet'),(8,'Août'),(9,'Septembre'),(10,'Octobre'),(11,'Novembre'),(12,'Décembre')] %}
+            <option value="{{ m }}">{{ v }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="file">Fichier</label>
+        <input type="file" id="file" name="file" required>
+    </div>
+
+    <div class="form-row">
+        <button type="submit">Uploader</button>
+    </div>
+</form>
+</div>
+
+<div id="message"></div>
+
+<hr class="separator">
+
+<h2>Historique des sources stockées</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Intitulé source</th>
+<th>Fournisseur</th>
+<th>Temporalité</th>
+<th>Année</th>
+<th>Mois</th>
+<th>Type</th>
+<th>Utilisateur</th>
+<th>Date stockage</th>
+</tr>
+</thead>
+<tbody>
+{% if sources %}
+{% for s in sources %}
+<tr>
+<td>{{ s.id }}</td>
+<td>{{ s.intitule_source }}</td>
+<td>{{ s.fournisseur }}</td>
+<td>{{ s.temporalite }}</td>
+<td>{{ s.annee }}</td>
+<td>{{ s.mois }}</td>
+<td>
+<a href="{{ url_for('ingestion.download_lac', id=s.id) }}" class="open-btn">{{ s.type_fichier }}</a>
+</td>
+<td>{{ s.utilisateur }}</td>
+<td>{{ s.date_stockage }}</td>
+</tr>
+{% endfor %}
+{% else %}
+<tr><td colspan="9">Aucune source enregistrée</td></tr>
+{% endif %}
+</tbody>
+</table>
+</main>
+
+<script>
+function adjustLayout() {
+    const banner = document.querySelector(".banniere-container img");
+    if(banner){
+        document.documentElement.style.setProperty("--banner-height", banner.offsetHeight + "px");
+    }
+}
+window.addEventListener("load", adjustLayout);
+window.addEventListener("resize", adjustLayout);
+
+document.addEventListener("DOMContentLoaded", () => {
+    const fournisseurSelect = document.getElementById("fournisseur");
+    const sourceSelect = document.getElementById("source_id");
+    const formIngestion = document.getElementById("form-ingestion");
+    const messageDiv = document.getElementById("message");
+
+    fournisseurSelect.addEventListener("change", () => {
+        const fournisseur = fournisseurSelect.value;
+        sourceSelect.innerHTML = "";
+        if (!fournisseur) return;
+
+        fetch(`/ingestion/api/get-sources/${encodeURIComponent(fournisseur)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.sources.length > 0) {
+                    data.sources.forEach(src => {
+                        const opt = document.createElement("option");
+                        opt.value = src.id;
+                        opt.textContent = src.intitule_source;
+                        sourceSelect.appendChild(opt);
+                    });
+                    formIngestion.style.display = "block";
+                } else {
+                    sourceSelect.innerHTML = "<option value=''>Aucune source disponible</option>";
+                    formIngestion.style.display = "none";
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                messageDiv.textContent = "Erreur lors du chargement des sources.";
+            });
+    });
+
+    formIngestion.addEventListener("submit", (e) => {
+        e.preventDefault();
+        messageDiv.textContent = "";
+
+        const formData = new FormData(formIngestion);
+        formData.append("fournisseur", fournisseurSelect.value);
+
+        fetch("/ingestion/api/upload", { method:"POST", body:formData })
+        .then(res => res.json())
+        .then(data => {
+            messageDiv.style.color = data.success ? "green" : "red";
+            messageDiv.textContent = data.message;
+            if(data.success) setTimeout(()=>location.reload(), 1000);
+        })
+        .catch(err => {
+            console.error(err);
+            messageDiv.style.color = "red";
+            messageDiv.textContent = "Erreur lors de l'upload du fichier.";
+        });
+    });
+});
+</script>
+
+</body>
+</html>

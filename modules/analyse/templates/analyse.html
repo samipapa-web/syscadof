@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Croisement des données – Éditeur de scripts</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.0/ace.js" crossorigin="anonymous"></script>
+
+<style>
+/* =========================
+   Structure générale
+========================= */
+html, body{
+    margin:0;
+    padding:0;
+}
+body{
+    font-family:Arial,sans-serif;
+    background:#f3f4f6;
+}
+
+/* =========================
+   Bannière fixée
+========================= */
+.banniere-container{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    z-index:1000;
+}
+.banniere-container img{
+    width:100%;
+    display:block;
+}
+
+/* Variable dynamique */
+:root{
+    --banner-height:0px;
+}
+
+/* =========================
+   Sidebar fixe
+========================= */
+.sidebar{
+    position:fixed;
+    top:var(--banner-height);
+    left:0;
+    bottom:0;
+    width:110px;
+    background-color:#1e293b;
+    padding-top:10px;
+    overflow-y:auto;
+}
+.sidebar a{
+    display:block;
+    margin:10px;
+    padding:10px 5px;
+    text-align:center;
+    color:white;
+    text-decoration:none;
+    font-weight:bold;
+    border-radius:4px;
+    background-color:#127291;
+    font-size:12px;
+}
+.sidebar a:hover{
+    background-color:#0d5a72;
+}
+
+/* =========================
+   Contenu principal
+========================= */
+.main-content{
+    margin-left:110px;
+    padding:20px;
+    padding-top:calc(20px + var(--banner-height));
+    overflow-x:auto;
+}
+
+/* =========================
+   Formulaire
+========================= */
+label{
+    font-weight:bold;
+    display:block;
+    margin-top:15px;
+}
+select,input,button{
+    width:100%;
+    padding:6px;
+    margin-top:5px;
+}
+#editor{
+    height:400px;
+    border:1px solid #ccc;
+    margin-top:15px;
+}
+#log{
+    margin-top:15px;
+    height:50px;
+    background:white;
+    border:1px solid #ccc;
+    padding:10px;
+    overflow-y:auto;
+    white-space:pre-wrap;
+}
+button{
+    background-color:#2099b6;
+    color:white;
+    border:none;
+    cursor:pointer;
+    margin-top:10px;
+    border-radius:4px;
+}
+button:hover{
+    background-color:#127291;
+}
+
+/* =========================
+   Tableau historique
+========================= */
+table{
+    border-collapse:collapse;
+    width:100%;
+    margin-top:20px;
+}
+table th, table td{
+    border:1px solid #ccc;
+    padding:6px;
+    text-align:center;
+}
+table th{
+    background-color:#2099b6;
+    color:white;
+    position:sticky;
+    top:0;
+    z-index:1;
+}
+td.type-cell span{
+    display:inline-block;
+    padding:4px 8px;
+    background-color:#2099b6;
+    color:white;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:0.9rem;
+}
+td:first-child, th:first-child{
+    text-align:left;
+}
+</style>
+</head>
+
+<body>
+
+<div class="banniere-container">
+    <img src="{{ url_for('static', filename='images/analyse.jpg') }}" alt="Croisement">
+</div>
+
+<aside class="sidebar">
+
+<a href="/">Accueil</a>
+
+{% if modules.get("Ingestion") %}
+<a href="/ingestion">Ingestion</a>
+{% endif %}
+
+{% if modules.get("Apurement") %}
+<a href="/traitement/editor">Apurement</a>
+{% endif %}
+
+{% if modules.get("Croisement") %}
+<a href="/analyse">Croisement</a>
+{% endif %}
+
+{% if modules.get("Orientation") %}
+<a href="/exploitation">Orientation</a>
+{% endif %}
+
+{% if modules.get("Valorisation") %}
+<a href="/valorisation">Valorisation</a>
+{% endif %}
+
+{% if modules.get("Restitution") %}
+<a href="/notification">Restitution</a>
+{% endif %}
+
+</aside>
+
+<main class="main-content">
+
+<label>Source de données A</label>
+<select id="sourceSelectA"></select>
+
+<label>Source de données B</label>
+<select id="sourceSelectB"></select>
+
+<label>Script de croisement/analyse</label>
+<select id="scriptSelect"></select>
+
+<button id="loadScriptBtn">Charger le script</button>
+
+<div id="editor"># Le script apparaîtra ici</div>
+
+<label>Titre du nouveau script</label>
+<input id="newScriptTitle" placeholder="Ex : Croisement TVA et CA">
+
+<button id="saveScriptBtn">Sauvegarder comme nouveau script</button>
+<button id="runScriptBtn">Exécuter le script</button>
+
+<div id="log"></div>
+
+<hr>
+
+<label>Historique des croisements</label>
+
+<table>
+<thead>
+<tr>
+<th>ID A</th>
+<th>ID B</th>
+<th>Nom du fichier</th>
+<th>Type</th>
+<th>Utilisateur</th>
+<th>Date</th>
+</tr>
+</thead>
+
+<tbody id="historyTable">
+{% for c in croisements %}
+<tr>
+<td>{{ c.id_source_a }}</td>
+<td>{{ c.id_source_b }}</td>
+<td>{{ c.nom_fichier }}</td>
+
+<td class="type-cell">
+<span class="open-tableur" data-filename="{{ c.nom_fichier }}">
+{{ c.type_fichier }}
+</span>
+</td>
+
+<td>{{ c.utilisateur }}</td>
+<td>{{ c.date_stockage }}</td>
+
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+</main>
+
+<script>
+/* =========================
+   Ajustement dynamique bannière
+========================= */
+function adjustLayout(){
+    const banner = document.querySelector(".banniere-container");
+    if(banner){
+        const height = banner.offsetHeight + "px";
+        document.documentElement.style.setProperty("--banner-height", height);
+    }
+}
+window.addEventListener("load", adjustLayout);
+window.addEventListener("resize", adjustLayout);
+
+/* =========================
+   Ace editor
+========================= */
+const editor = ace.edit("editor");
+editor.setTheme("ace/theme/monokai");
+editor.session.setMode("ace/mode/python");
+
+const log = document.getElementById("log");
+const sourceSelectA = document.getElementById("sourceSelectA");
+const sourceSelectB = document.getElementById("sourceSelectB");
+const scriptSelect = document.getElementById("scriptSelect");
+
+/* =========================
+   Charger sources
+========================= */
+async function loadSourcesLac(){
+    const res = await fetch("/analyse/api/sources-lac");
+    const sources = await res.json();
+    [sourceSelectA, sourceSelectB].forEach(select=>{
+        select.innerHTML="";
+        sources.forEach(s=>{
+            const opt = document.createElement("option");
+            opt.value = s.id;
+            opt.textContent = `${s.intitule_source} (${s.annee || '-'}/${s.mois || '-'})`;
+            select.appendChild(opt);
+        });
+    });
+}
+
+/* =========================
+   Charger scripts
+========================= */
+async function loadScripts(){
+    const res = await fetch("/analyse/api/scripts");
+    const scripts = await res.json();
+    scriptSelect.innerHTML="";
+    scripts.forEach(s=>{
+        const opt = document.createElement("option");
+        opt.value=s.id;
+        opt.textContent=s.titre;
+        scriptSelect.appendChild(opt);
+    });
+}
+
+/* =========================
+   Charger script
+========================= */
+document.getElementById("loadScriptBtn").onclick = async ()=>{
+    const id = scriptSelect.value;
+    const res = await fetch(`/analyse/api/get-script/${id}`);
+    const data = await res.json();
+    log.textContent = data.success ? "✅ Script chargé." : "❌ " + data.error;
+    if(data.success) editor.setValue(data.contenu,-1);
+};
+
+/* =========================
+   Exécution script
+========================= */
+document.getElementById("runScriptBtn").onclick = async ()=>{
+    if(!sourceSelectA.value || !sourceSelectB.value){
+        log.textContent="❌ Sélectionner les deux sources.";
+        return;
+    }
+    const formData=new FormData();
+    formData.append("source_a_id",sourceSelectA.value);
+    formData.append("source_b_id",sourceSelectB.value);
+    formData.append("script_contenu",editor.getValue());
+    log.textContent="⏳ Exécution...";
+    const res = await fetch(`/analyse/api/run-script/${scriptSelect.value}`,{
+        method:"POST",
+        body:formData
+    });
+    const data = await res.json();
+    log.textContent = data.success ? "✅ "+data.message : "❌ "+data.error;
+
+    if(data.success){
+        const tBody = document.getElementById("historyTable");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${sourceSelectA.value}</td>
+            <td>${sourceSelectB.value}</td>
+            <td>${data.resultat_sortie}</td>
+            <td class="type-cell">
+                <span class="open-tableur" data-filename="${data.resultat_sortie}">
+                    ${data.resultat_sortie.split('.').pop()}
+                </span>
+            </td>
+            <td>${data.utilisateur || "system"}</td>
+            <td>${new Date().toLocaleString()}</td>
+        `;
+        tBody.prepend(tr);
+    }
+};
+
+/* =========================
+   Sauvegarde script
+========================= */
+document.getElementById("saveScriptBtn").onclick = async ()=>{
+    const titre=document.getElementById("newScriptTitle").value.trim();
+    if(!titre){ log.textContent="❌ Titre requis."; return; }
+    const res=await fetch("/analyse/api/save-new-script",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({titre:titre, contenu:editor.getValue()})
+    });
+    const data=await res.json();
+    log.textContent=data.success ? "✅ "+data.message : "❌ "+data.error;
+    loadScripts();
+};
+
+/* =========================
+   Ouverture tableur (module analyse)
+========================= */
+document.getElementById("historyTable").addEventListener("click", function(e){
+    const btn = e.target.closest(".open-tableur");
+    if(!btn) return;
+    const filename = btn.dataset.filename;
+    if(!filename) return;
+    const safe = encodeURIComponent(filename);
+    // window.open(`/analyse/tableur_analyse/${safe}`, "_blank");
+	window.location.href = `/analyse/tableur_analyse/${safe}`;
+});
+
+/* =========================
+   Initialisation
+========================= */
+loadSourcesLac();
+loadScripts();
+</script>
+
+</body>
+</html>

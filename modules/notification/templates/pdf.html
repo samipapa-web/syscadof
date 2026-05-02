@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Visualisation PDF</title>
+
+<style>
+/* ============================
+   Reset et style global
+============================ */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background: #f3f4f6;
+}
+
+/* ============================
+   Bannière fixée en haut
+============================ */
+.banniere-container {
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.banniere-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* ============================
+   Sidebar fixe / Menu
+============================ */
+.sidebar {
+    position: fixed;
+    top: 0; /* sera ajusté par JS */
+    left: 0;
+    bottom: 0;
+    width: 130px;
+    background: #1e293b;
+    overflow-y: auto;
+    padding-top: 10px;
+    z-index: 900;
+    transition: transform 0.3s ease;
+}
+
+.sidebar a {
+    display: block;
+    margin: 10px;
+    padding: 10px;
+    text-align: center;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    background-color: #127291;
+    border-radius: 4px;
+}
+
+.sidebar a:hover {
+    background-color: #0d5a72;
+}
+
+/* ============================
+   Hamburger menu (mobile)
+============================ */
+.hamburger {
+    display: none;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1100;
+    cursor: pointer;
+    width: 30px;
+    height: 25px;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hamburger div {
+    width: 100%;
+    height: 4px;
+    background: #127291;
+    border-radius: 2px;
+}
+
+/* ============================
+   Contenu principal (PDF)
+============================ */
+.main-content {
+    margin-left: 130px; /* espace pour sidebar */
+    padding: 0;
+    padding-top: 0; /* ajusté par JS selon bannière */
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+.main-content iframe {
+    width: 100%;
+    border: none;
+    display: block;
+}
+
+/* ============================
+   Responsive mobile
+============================ */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+        transform: translateX(-220px);
+    }
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0;
+    }
+    .hamburger {
+        display: flex;
+    }
+}
+</style>
+</head>
+<body>
+
+<!-- Bannière -->
+<div class="banniere-container">
+    <img id="banniere-img" src="{{ url_for('static', filename='images/notification.jpg') }}" alt="Bannière">
+</div>
+
+<!-- Hamburger menu -->
+<div class="hamburger" id="hamburger">
+    <div></div>
+    <div></div>
+    <div></div>
+</div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+    <a href="/">Accueil</a>
+    <a href="/notification">Restitution</a>
+</aside>
+
+<!-- Contenu principal -->
+<div class="main-content" id="main-content">
+    <iframe id="pdf-frame" src="/notification/pdf_file/{{ fichier }}"></iframe>
+</div>
+
+<script>
+// ============================
+// Ajustement dynamique layout
+// ============================
+function ajusterLayout() {
+    const banniere = document.getElementById('banniere-img');
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('main-content');
+    const iframe = document.getElementById('pdf-frame');
+
+    const banniereHeight = banniere.clientHeight;
+
+    sidebar.style.top = banniereHeight + 'px';
+    mainContent.style.paddingTop = banniereHeight + 'px';
+    iframe.style.height = `calc(100vh - ${banniereHeight}px)`;
+}
+
+window.addEventListener('load', ajusterLayout);
+window.addEventListener('resize', ajusterLayout);
+
+// ============================
+// Hamburger toggle
+// ============================
+const hamburger = document.getElementById('hamburger');
+const sidebar = document.getElementById('sidebar');
+
+hamburger.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+});
+</script>
+
+</body>
+</html>

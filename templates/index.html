@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SYSCADOF - Accueil</title>
+
+<style>
+
+/* ================================
+STRUCTURE GENERALE
+================================ */
+
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f4f6f9;
+}
+
+/* ============================
+BANNIERE FIXE
+============================ */
+
+.banniere-container{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    z-index:1000;
+}
+
+.banniere-container img{
+    width:100%;
+    height:auto;
+    display:block;
+}
+
+/* ============================
+VARIABLE DYNAMIQUE
+============================ */
+
+:root{
+    --banner-height:0px;
+}
+
+/* ============================
+MENU HORIZONTAL
+============================ */
+
+.sidebar{
+    position:fixed;
+    top:var(--banner-height);
+    left:0;
+    width:100%;
+    height:55px;
+    background:#1e293b;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:900;
+}
+
+.sidebar a{
+    margin:0 8px;
+    padding:10px 18px;
+    color:white;
+    text-decoration:none;
+    font-weight:bold;
+    border-radius:4px;
+    background:#127291;
+    font-size:13px;
+}
+
+.sidebar a:hover{
+    background:#0d5a72;
+}
+
+.logout{
+    background:#dc2626 !important;
+}
+
+/* ================================
+UTILISATEUR CONNECTÉ
+================================ */
+
+.user-bar{
+    position:fixed;
+    right:20px;
+    top:calc(var(--banner-height) + 65px);
+    font-size:13px;
+    color:#333;
+}
+
+/* ================================
+CONTENU PRINCIPAL
+================================ */
+
+.main{
+    margin-top:calc(var(--banner-height) + 90px);
+    padding:20px;
+    max-width:1200px;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+/* ================================
+CARDS MODULES – UNE SEULE LIGNE
+================================ */
+
+.cards{
+    display:flex;
+    gap:25px;
+    justify-content:center;
+    flex-wrap:wrap;
+    padding-bottom:10px;
+}
+
+.cards::-webkit-scrollbar{
+    height:6px;
+}
+
+.cards::-webkit-scrollbar-thumb{
+    background:#127291;
+    border-radius:3px;
+}
+
+.card{
+    flex:0 0 120px;
+    background:white;
+    padding:25px;
+    border-radius:10px;
+    box-shadow:0 3px 10px rgba(0,0,0,0.08);
+    cursor:pointer;
+    transition:all 0.25s ease;
+    position:relative;
+    overflow:hidden;
+}
+
+.card::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:5px;
+}
+
+.card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 8px 20px rgba(0,0,0,0.15);
+    background:#127291;
+}
+
+.card-title{
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:8px;
+    transition:0.2s;
+}
+
+.card-desc{
+    font-size:14px;
+    color:#555;
+    transition:0.2s;
+}
+
+.card:hover .card-title,
+.card:hover .card-desc{
+    color:white;
+}
+
+/* ================================
+COULEURS PAR MODULE
+================================ */
+
+.card.ingestion::before{ background:#2563eb; }
+.card.apurement::before{ background:#16a34a; }
+.card.analyse::before{ background:#9333ea; }
+.card.exploitation::before{ background:#ea580c; }
+.card.valorisation::before{ background:#d97706; }
+.card.notification::before{ background:#dc2626; }
+
+</style>
+</head>
+
+<body>
+
+<!-- ============================
+BANNIERE
+============================ -->
+
+<div class="banniere-container">
+<img id="banner"
+src="{{ url_for('static', filename='images/accueil.jpg') }}"
+alt="Bannière">
+</div>
+
+<!-- ============================
+MENU DYNAMIQUE
+============================ -->
+
+<nav class="sidebar">
+
+<a href="/">Accueil</a>
+
+{% if modules.get("Ingestion") %}
+<a href="/ingestion">Ingestion</a>
+{% endif %}
+
+{% if modules.get("Apurement") %}
+<a href="/traitement/editor">Apurement</a>
+{% endif %}
+
+{% if modules.get("Croisement") %}
+<a href="/analyse">Croisement</a>
+{% endif %}
+
+{% if modules.get("Orientation") %}
+<a href="/exploitation">Orientation</a>
+{% endif %}
+
+{% if modules.get("Valorisation") %}
+<a href="/valorisation">Valorisation</a>
+{% endif %}
+
+{% if modules.get("Restitution") %}
+<a href="/notification">Restitution</a>
+{% endif %}
+
+{% if modules.get("Administration") %}
+<a href="/administration">Administration</a>
+{% endif %}
+
+<a href="/logout" class="logout">Déconnexion</a>
+
+</nav>
+
+<!-- ============================
+UTILISATEUR CONNECTÉ
+============================ -->
+
+<div class="user-bar">
+Utilisateur : <b>{{ user }}</b> |
+Rôle : <b>{{ role }}</b>
+</div>
+
+<!-- ============================
+CONTENU
+============================ -->
+
+<div class="main">
+
+<div class="cards">
+
+{% if modules.get("Ingestion") %}
+<div class="card ingestion" onclick="location.href='/ingestion'">
+<div class="card-title">Ingestion</div>
+<div class="card-desc">Importation, organisation et stockage des données de diverses sources</div>
+</div>
+{% endif %}
+
+{% if modules.get("Apurement") %}
+<div class="card apurement" onclick="location.href='/traitement/editor'">
+<div class="card-title">Apurement</div>
+<div class="card-desc">Nettoyage et préparation des données stockées</div>
+</div>
+{% endif %}
+
+{% if modules.get("Croisement") %}
+<div class="card analyse" onclick="location.href='/analyse'">
+<div class="card-title">Croisement</div>
+<div class="card-desc">Croisement des données et détection des entités à risque</div>
+</div>
+{% endif %}
+
+{% if modules.get("Orientation") %}
+<div class="card exploitation" onclick="location.href='/exploitation'">
+<div class="card-title">Orientation</div>
+<div class="card-desc">Validation du listing des entités à risque, orientation de l'exploitation</div>
+</div>
+{% endif %}
+
+{% if modules.get("Valorisation") %}
+<div class="card valorisation" onclick="location.href='/valorisation'">
+<div class="card-title">Valorisation</div>
+<div class="card-desc">Complément d'informations et liquidation des impôts dus</div>
+</div>
+{% endif %}
+
+{% if modules.get("Restitution") %}
+<div class="card notification" onclick="location.href='/notification'">
+<div class="card-title">Restitution</div>
+<div class="card-desc">Génération des outputs pour notification</div>
+</div>
+{% endif %}
+
+</div>
+
+</div>
+
+<!-- ============================
+SCRIPT BANNIERE
+============================ -->
+
+<script>
+
+function ajusterBanniere(){
+
+let banner=document.getElementById("banner");
+
+if(banner){
+
+let h=banner.offsetHeight;
+
+document.documentElement.style.setProperty("--banner-height",h+"px");
+
+}
+
+}
+
+window.onload=ajusterBanniere;
+
+window.onresize=ajusterBanniere;
+
+</script>
+
+</body>
+</html>

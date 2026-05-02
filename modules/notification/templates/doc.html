@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Gestion des modèles Word</title>
+
+<style>
+
+/* ============================
+   Structure générale
+============================ */
+html, body {
+    margin:0;
+    padding:0;
+    font-family: Arial, sans-serif;
+    background:#f3f4f6;
+}
+
+/* ============================
+   Bannière
+============================ */
+.banniere-container {
+    position: fixed;
+    top:0; left:0; width:100%; z-index:1000;
+}
+.banniere-container img {
+    width:100%; height:auto; display:block;
+}
+
+/* Variable dynamique */
+:root { --banner-height:0px; }
+
+/* ============================
+   Sidebar
+============================ */
+.sidebar {
+    position: fixed;
+    top: var(--banner-height);
+    left:0; bottom:0;
+    width:110px;
+    background-color: #1e293b;
+    overflow-y:auto;
+    padding-top:10px;
+}
+.sidebar a {
+    display:block;
+    margin:10px;
+    padding:10px 5px;
+    text-align:center;
+    color:white;
+    text-decoration:none;
+    font-weight:bold;
+    border-radius:4px;
+    background-color:#127291;
+    font-size:12px;
+}
+.sidebar a:hover { background-color:#0d5a72; }
+
+/* ============================
+   Contenu principal
+============================ */
+.main-content {
+    margin-left:110px;
+    padding:20px;
+    padding-top: calc(20px + var(--banner-height));
+}
+
+/* ============================
+   Container
+============================ */
+.container {
+    max-width:900px;
+    margin:auto;
+    background:white;
+    padding:20px;
+    border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* ============================
+   Formulaire
+============================ */
+h3 { color:#2099b6; }
+
+select, button, input {
+    padding:8px;
+    margin-top:10px;
+    width:100%;
+}
+
+button {
+    background:#2099b6;
+    color:white;
+    border:none;
+    border-radius:4px;
+    cursor:pointer;
+}
+button:hover { background:#167d94; }
+
+.form-group {
+    display:flex;
+    flex-direction:column;
+    margin-top:10px;
+}
+
+/* ============================
+   Viewer
+============================ */
+iframe {
+    margin-top:20px;
+    width:100%;
+    height:600px;
+    border:1px solid #ccc;
+    background:white;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ============================
+     Bannière
+============================ -->
+<div class="banniere-container">
+    <img src="{{ url_for('static', filename='images/modelenotif.jpg') }}" alt="Notification">
+</div>
+
+<!-- ============================
+     Sidebar
+============================ -->
+<aside class="sidebar">
+    <a href="/">Accueil</a>
+
+    {% if modules.get("Ingestion") %}<a href="/ingestion">Ingestion</a>{% endif %}
+    {% if modules.get("Apurement") %}<a href="/traitement/editor">Apurement</a>{% endif %}
+    {% if modules.get("Croisement") %}<a href="/analyse">Croisement</a>{% endif %}
+    {% if modules.get("Orientation") %}<a href="/exploitation">Orientation</a>{% endif %}
+    {% if modules.get("Valorisation") %}<a href="/valorisation">Valorisation</a>{% endif %}
+    {% if modules.get("Restitution") %}<a href="/notification">Restitution</a>{% endif %}
+</aside>
+
+<!-- ============================
+     Contenu principal
+============================ -->
+<main class="main-content">
+
+<div class="container">
+
+    <!-- ============================
+         Modifier modèle
+    ============================ -->
+    <h3>Modifier un modèle existant</h3>
+
+    <label>Choisir un modèle</label>
+    <select id="modeleSelect"></select>
+
+    <button onclick="ouvrirModele()">Ouvrir</button>
+
+    <hr>
+
+    <!-- ============================
+         Ajouter modèle
+    ============================ -->
+    <h3>Ajouter un nouveau modèle</h3>
+
+    <label>Type de notification</label>
+    <select id="typeNotifSelect"></select>
+
+    <div class="form-group">
+        <label>Sélectionner un fichier (.docx)</label>
+        <input type="file" id="fileInput" accept=".docx" onchange="remplirIntitule()">
+    </div>
+
+    <div class="form-group">
+        <label>Intitulé du modèle</label>
+        <input type="text" id="intituleInput" placeholder="Nom du modèle">
+    </div>
+
+    <button onclick="stockerModele()">Stocker le modèle</button>
+
+    <div id="uploadLog"></div>
+
+    <!-- ============================
+         Viewer
+    ============================ -->
+    <iframe id="viewer"></iframe>
+
+</div>
+
+</main>
+
+<script>
+
+// ============================
+// Ajustement bannière dynamique
+// ============================
+function adjustLayout() {
+    const banner = document.querySelector(".banniere-container");
+    if (banner) {
+        const height = banner.offsetHeight + "px";
+        document.documentElement.style.setProperty("--banner-height", height);
+    }
+}
+window.addEventListener("load", adjustLayout);
+window.addEventListener("resize", adjustLayout);
+
+// ============================
+// Initialisation
+// ============================
+document.addEventListener("DOMContentLoaded", async () => {
+    await chargerModeles();
+    await chargerTypesNotification();
+
+    const params = new URLSearchParams(window.location.search);
+    let modele = params.get("modele");
+
+    if (modele) {
+        const select = document.getElementById("modeleSelect");
+        const options = Array.from(select.options).map(o => o.value);
+
+        if (options.includes(modele)) {
+            select.value = modele;
+            ouvrirModele();
+        }
+    }
+});
+
+// ============================
+// Charger modèles
+// ============================
+async function chargerModeles() {
+    try {
+        const res = await fetch("/notification/api/templates");
+        const data = await res.json();
+
+        const select = document.getElementById("modeleSelect");
+        select.innerHTML = "<option value=''>-- Sélectionner --</option>";
+
+        data.forEach(m => {
+            select.innerHTML += `<option value="${m}">${m}</option>`;
+        });
+
+    } catch(e) { console.error(e); }
+}
+
+// ============================
+// Charger types notification
+// ============================
+async function chargerTypesNotification() {
+    try {
+        const res = await fetch("/notification/api/types_notification");
+        const data = await res.json();
+
+        const select = document.getElementById("typeNotifSelect");
+        select.innerHTML = "<option value=''>-- Sélectionner --</option>";
+
+        data.forEach(t => {
+            select.innerHTML += `<option value="${t}">${t}</option>`;
+        });
+
+    } catch(e) { console.error(e); }
+}
+
+// ============================
+// Remplir intitulé automatiquement
+// ============================
+function remplirIntitule() {
+    const fileInput = document.getElementById("fileInput");
+    const intituleInput = document.getElementById("intituleInput");
+
+    if (fileInput.files.length > 0) {
+        let nom = fileInput.files[0].name;
+        nom = nom.replace(/\.docx$/i, "");
+        intituleInput.value = nom;
+    }
+}
+
+// ============================
+// Stocker modèle
+// ============================
+async function stockerModele() {
+    const fileInput = document.getElementById("fileInput");
+    const typeNotif = document.getElementById("typeNotifSelect").value;
+    const intitule = document.getElementById("intituleInput").value.trim();
+    const log = document.getElementById("uploadLog");
+
+    if (!fileInput.files.length) {
+        log.textContent = "❌ Veuillez sélectionner un fichier.";
+        return;
+    }
+
+    if (!typeNotif) {
+        log.textContent = "❌ Veuillez choisir un type.";
+        return;
+    }
+
+    if (!intitule) {
+        log.textContent = "❌ Veuillez saisir un intitulé.";
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type_notification", typeNotif);
+    formData.append("intitule", intitule);
+
+    log.textContent = "⏳ Enregistrement...";
+
+    try {
+        const res = await fetch("/notification/api/upload_template", {
+            method:"POST",
+            body:formData
+        });
+
+        const result = await res.json();
+
+        log.textContent = result.success
+            ? "✅ " + result.message
+            : "❌ " + result.message;
+
+        if (result.success) {
+            chargerModeles();
+        }
+
+    } catch(e) {
+        log.textContent = "❌ Erreur serveur : " + e.message;
+    }
+}
+
+// ============================
+// Ouvrir modèle
+// ============================
+function ouvrirModele() {
+    const modele = document.getElementById("modeleSelect").value;
+
+    if (!modele) {
+        alert("Veuillez sélectionner un modèle.");
+        return;
+    }
+
+    document.getElementById("viewer").src =
+        `/notification/template/${encodeURIComponent(modele)}`;
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SYSCADOF - Login</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    font-family: Arial, Helvetica, sans-serif;
+    background:#f4f6f9;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
+}
+
+/* Container réduit à 60% écran */
+.login-box{
+    background:white;
+    padding:30px;
+    border-radius:8px;
+    box-shadow:0 3px 10px rgba(0,0,0,0.1);
+    width:55vw;
+    max-width:450px;
+    min-width:320px;
+    text-align:center;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+}
+
+/* Logo image */
+.login-logo{
+    width:100%;
+    max-height:140px;
+    object-fit:contain;
+    display:block;
+    margin:0 auto 1px auto;
+}
+
+/* Titres */
+.login-box h4{
+    font-size:16px;
+    color:#475569;
+    margin-bottom:15px;
+    font-weight:normal;
+    text-align:left;
+}
+
+/* Champs formulaire */
+.login-box input[type="text"],
+.login-box input[type="password"]{
+    width:100%;
+    padding:10px;
+    margin:8px 0;
+    border-radius:5px;
+    border:1px solid #ccc;
+    font-size:14px;
+}
+
+/* Bouton */
+.login-box button{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    border:none;
+    border-radius:5px;
+    background:#127291;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.login-box button:hover{
+    background:#0d5a72;
+}
+
+/* Message erreur */
+.error-msg{
+    color:#dc2626;
+    text-align:center;
+    margin-top:10px;
+    font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="login-box">
+
+<!-- LOGO à la place du titre -->
+<img src="{{ url_for('static', filename='images/login2.jpg') }}" 
+     class="login-logo" 
+     alt="SYSCADOF">
+
+<h4>Entrez vos paramètres de connexion</h4>
+
+<form method="POST" action="/login">
+
+<input 
+type="text" 
+name="username" 
+placeholder="Utilisateur" 
+required>
+
+<input 
+type="password" 
+name="password" 
+placeholder="Mot de passe" 
+required>
+
+<button type="submit">
+Se connecter
+</button>
+
+</form>
+
+{% if error %}
+<div class="error-msg">
+{{ error }}
+</div>
+{% endif %}
+
+</div>
+
+</body>
+</html>

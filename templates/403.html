@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SYSCADOF - Connexion</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+/* ===============================
+STYLE GLOBAL
+=============================== */
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f4f6f9;
+    overflow-x:hidden;
+}
+
+/* ===============================
+BANNIERE
+=============================== */
+.banniere-container{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    z-index:1000;
+}
+
+.banniere-container img{
+    width:100%;
+    display:block;
+}
+
+:root{
+--banner-height:0px;
+}
+
+/* ===============================
+ZONE PRINCIPALE
+=============================== */
+.main{
+    margin-top:calc(var(--banner-height));
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+/* ===============================
+FOND FLOUTE + FORMULAIRE
+=============================== */
+.login-container{
+    background:rgba(255,255,255,0.35);
+    backdrop-filter:blur(15px) saturate(150%);
+    padding:40px;
+    border-radius:14px;
+    box-shadow:0 12px 30px rgba(0,0,0,0.2);
+    width:380px;
+    animation:fadeIn 0.8s ease;
+}
+
+/* ===============================
+ANIMATION D’ARRIVEE
+=============================== */
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+/* ===============================
+TITRE
+=============================== */
+.login-title{
+    text-align:center;
+    font-size:24px;
+    font-weight:bold;
+    margin-bottom:30px;
+    color:#1e293b;
+    text-shadow:1px 1px 2px rgba(0,0,0,0.2);
+}
+
+/* ===============================
+INPUTS MODERNES GLASS
+=============================== */
+.input-group{
+    position:relative;
+    margin-bottom:20px;
+    width:100%;
+}
+
+.input-group input{
+    width:100%;
+    padding:12px 40px;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,0.6);
+    font-size:14px;
+    box-sizing:border-box;
+    background:rgba(255,255,255,0.15);
+    color:#1e293b;
+    transition:0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
+    backdrop-filter:blur(5px);
+}
+
+.input-group input::placeholder{
+    color:rgba(30,41,59,0.7);
+}
+
+.input-group input:focus{
+    outline:none;
+    border:1px solid #127291;
+    background:rgba(255,255,255,0.25);
+    box-shadow:0 0 12px rgba(18,114,145,0.5);
+    backdrop-filter:blur(10px);
+}
+
+/* ===============================
+ICÔNES
+=============================== */
+.input-group i{
+    position:absolute;
+    top:50%;
+    left:12px;
+    transform:translateY(-50%);
+    color:#127291;
+}
+
+.toggle-password{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    cursor:pointer;
+    color:#127291;
+}
+
+/* ===============================
+BOUTON
+=============================== */
+.login-btn{
+    width:100%;
+    padding:12px;
+    background:#127291;
+    border:none;
+    color:white;
+    font-size:15px;
+    font-weight:bold;
+    border-radius:8px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.login-btn:hover{
+    background:#0d5a72;
+    box-shadow:0 4px 20px rgba(18,114,145,0.4);
+}
+
+/* ===============================
+MESSAGE ERREUR
+=============================== */
+.error{
+    color:red;
+    text-align:center;
+    margin-bottom:15px;
+}
+
+.footer{
+    text-align:center;
+    margin-top:20px;
+    font-size:12px;
+    color:#555;
+}
+</style>
+</head>
+
+<body>
+
+<!-- BANNIERE -->
+<div class="banniere-container">
+    <img id="banner" src="{{ url_for('ingestion.static', filename='images/accueil.jpg') }}">
+</div>
+
+</div>
+
+<script>
+/* ===============================
+AJUSTEMENT BANNIERE
+=============================== */
+function ajusterBanniere(){
+    let banner=document.getElementById("banner");
+    if(banner){
+        let h=banner.offsetHeight;
+        document.documentElement.style.setProperty("--banner-height",h+"px");
+    }
+}
+window.onload=ajusterBanniere;
+window.onresize=ajusterBanniere;
+
+/* ===============================
+AFFICHER / MASQUER MOT DE PASSE
+=============================== */
+function togglePassword(){
+    let pwd=document.getElementById("password");
+    pwd.type = (pwd.type==="password") ? "text" : "password";
+}
+</script>
+
+</body>
+</html>

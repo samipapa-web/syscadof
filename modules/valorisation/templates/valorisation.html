@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SYSCADOF - valorisation</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.0/ace.js"></script>
+
+<style>
+/* =========================
+   Styles généraux
+   ========================= */
+html, body {
+    margin:0;
+    padding:0;
+    font-family: Arial, sans-serif;
+    background:#f3f4f6;
+}
+
+/* Bannière fixe */
+.banniere-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+}
+.banniere-container img {
+    width:100%;
+    display:block;
+}
+
+/* Hauteur dynamique de la bannière */
+:root {
+    --banner-height: 0px;
+}
+
+/* Sidebar fixe */
+.sidebar {
+    position: fixed;
+    top: var(--banner-height);
+    left: 0;
+    bottom: 0;
+    width: 110px;
+    background-color: #1e293b;
+    padding-top: 10px;
+    overflow-y: auto;
+}
+.sidebar a {
+    display: block;
+    margin: 10px;
+    padding: 10px 5px;
+    text-align: center;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 4px;
+    background-color: #127291;
+    font-size: 12px;
+}
+.sidebar a:hover { background-color: #0d5a72; }
+
+/* Contenu principal */
+.main-content {
+    margin-left: 110px;
+    padding: 20px;
+    padding-top: calc(20px + var(--banner-height));
+    overflow-x: auto;
+}
+
+/* Titres */
+h3 { color:#2099b6; }
+
+/* Formulaire */
+select, input { padding:6px; margin:5px 0; width:100%; }
+button {
+    padding:6px 12px;
+    background:#2099b6;
+    color:white;
+    border:none;
+    cursor:pointer;
+    border-radius:4px;
+    margin-top:5px;
+}
+button:hover { background:#167d94; }
+
+#editor { width:100%; height:300px; margin-top:10px; border:1px solid #ccc; }
+#log { margin-top:10px; height:50px; background:white; border:1px solid #ccc; padding:10px; overflow-y:auto; white-space:pre-wrap; font-family: monospace; }
+
+/* Tableau */
+table { width:100%; border-collapse: collapse; margin-top:20px; background:white; }
+th { background:#2099b6; color:white; padding:10px; text-align:center; }
+td { padding:8px; border-bottom:1px solid #ddd; text-align:center; }
+
+/* Séparateur et formulaire */
+.separator { border: none; border-top: 2px solid #2099b6; margin: 40px 0 10px 0; }
+.form-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; margin-bottom: 15px; }
+.form-row { display: grid; grid-template-columns: 230px 1fr; align-items: center; gap: 15px; }
+.form-row label { font-weight: bold; text-align: left; }
+.form-row select { width: 100%; }
+
+/* Cellules ID */
+.id-cell span {
+    display: inline-block;
+    padding: 4px 8px;
+    background-color: #2099b6;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Bannière fixe -->
+<div class="banniere-container">
+    <img src="{{ url_for('static', filename='images/exploitation_s2.jpg') }}" alt="valorisation">
+</div>
+
+<!-- Sidebar fixe -->
+<aside class="sidebar">
+    <a href="/">Accueil</a>
+    {% if modules.get("Ingestion") %}<a href="/ingestion">Ingestion</a>{% endif %}
+    {% if modules.get("Apurement") %}<a href="/traitement/editor">Apurement</a>{% endif %}
+    {% if modules.get("Croisement") %}<a href="/analyse">Croisement</a>{% endif %}
+    {% if modules.get("Orientation") %}<a href="/exploitation">Orientation</a>{% endif %}
+    {% if modules.get("Valorisation") %}<a href="/valorisation">Valorisation</a>{% endif %}
+    {% if modules.get("Restitution") %}<a href="/notification">Restitution</a>{% endif %}
+</aside>
+
+<!-- Contenu principal -->
+<div class="page-container">
+<main class="main-content">
+
+<h3>Paramétrage de l'exploitation</h3>
+
+<div class="form-grid">
+    <div class="form-row">
+        <label for="fichierSelect">Fichier à exploiter</label>
+        <select id="fichierSelect"></select>
+    </div>
+    <div class="form-row">
+        <label for="matiereSelect">Matière recoupée</label>
+        <select id="matiereSelect"></select>
+    </div>
+    <div class="form-row">
+        <label for="chapitreSelect">Famille de risque</label>
+        <select id="chapitreSelect"></select>
+    </div>
+    <div class="form-row">
+        <label for="risqueSelect">Risque</label>
+        <select id="risqueSelect"></select>
+    </div>
+    <div class="form-row">
+        <label for="axeSelect">Axe de risque</label>
+        <select id="axeSelect"></select>
+    </div>
+    <div class="form-row">
+        <label for="impotsSelect">Impôts à inclure</label>
+        <select id="impotsSelect" multiple>
+            <option value="TVA">TVA</option>
+            <option value="IS">IS</option>
+            <option value="IRPP">IRPP</option>
+            <option value="IRCM">IRCM</option>
+            <option value="Autre_taxe">Autre_taxe</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="autreTaxeInput">Intitulé de Autre_taxe</label>
+        <input type="text" id="autreTaxeInput" placeholder="Nom de l'autre taxe">
+    </div>
+    <div class="form-row">
+        <label for="scriptSelect">Script d'exploitation</label>
+        <select id="scriptSelect"></select>
+    </div>
+</div>
+
+<button onclick="loadScript()">Charger le script</button>
+<div id="editor"></div>
+<input type="text" id="scriptName" placeholder="Nom du script modifié">
+<button onclick="saveScript()">Sauvegarder le script</button>
+<button onclick="executeScript()">Exécuter le script</button>
+
+<div id="log"></div>
+<hr class="separator">
+
+<h3>Historique des travaux</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Fichier généré</th>
+<th>Risque</th>
+<th>Axe</th>
+<th>Impôts inclus</th>
+<th>Responsable</th>
+<th>Date</th>
+</tr>
+</thead>
+<tbody id="historiqueBody"></tbody>
+</table>
+
+</main>
+</div>
+
+<script>
+// Ajustement dynamique bannière
+function adjustLayout(){
+    const banner = document.querySelector(".banniere-container");
+    if(banner){
+        const height = banner.offsetHeight + "px";
+        document.documentElement.style.setProperty("--banner-height", height);
+    }
+}
+window.addEventListener("load", adjustLayout);
+window.addEventListener("resize", adjustLayout);
+
+// Ace editor
+const editor = ace.edit("editor");
+editor.setTheme("ace/theme/monokai");
+editor.session.setMode("ace/mode/python");
+
+// Chargement initial
+document.addEventListener("DOMContentLoaded", () => {
+    loadAllSelects();
+    loadHistorique();
+});
+
+// Fonctions de selects, scripts et historique (inchangées)
+async function loadAllSelects() {
+    const res = await fetch("/valorisation/api/init");
+    const data = await res.json();
+    populateSelect("fichierSelect", data.fichiers);
+    populateSelect("matiereSelect", data.matieres);
+    populateSelect("chapitreSelect", data.chapitres);
+    populateSelect("scriptSelect", data.scripts);
+}
+function populateSelect(id, items) {
+    const select = document.getElementById(id);
+    select.innerHTML = "<option value=''>-- Sélectionner --</option>";
+    items.forEach(i => select.innerHTML += `<option value="${i}">${i}</option>`);
+}
+document.getElementById("chapitreSelect").addEventListener("change", loadRisques);
+document.getElementById("risqueSelect").addEventListener("change", loadAxes);
+async function loadRisques() {
+    const chapitre = document.getElementById("chapitreSelect").value;
+    const res = await fetch("/valorisation/api/risques?chapitre=" + encodeURIComponent(chapitre));
+    const data = await res.json();
+    populateSelect("risqueSelect", data);
+}
+async function loadAxes() {
+    const chapitre = document.getElementById("chapitreSelect").value;
+    const risque = document.getElementById("risqueSelect").value;
+    const res = await fetch(`/valorisation/api/axes?chapitre=${encodeURIComponent(chapitre)}&risque=${encodeURIComponent(risque)}`);
+    const data = await res.json();
+    populateSelect("axeSelect", data);
+}
+async function loadScript() {
+    const script = document.getElementById("scriptSelect").value;
+    if(!script) return;
+    const res = await fetch("/valorisation/api/load-script?name=" + encodeURIComponent(script));
+    const data = await res.json();
+    editor.setValue(data.content,-1);
+}
+async function saveScript() {
+    const name = document.getElementById("scriptName").value;
+    const content = editor.getValue();
+    const res = await fetch("/valorisation/api/save-script", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name, content})
+    });
+    const result = await res.json();
+    document.getElementById("log").textContent = result.message || "Script sauvegardé.";
+    loadAllSelects();
+}
+async function executeScript() {
+    const log = document.getElementById("log");
+    const impotsSelected = Array.from(document.getElementById("impotsSelect").selectedOptions).map(o=>o.value);
+    const autreTaxe = document.getElementById("autreTaxeInput").value;
+    const payload = {
+        fichier: document.getElementById("fichierSelect").value,
+        matiere: document.getElementById("matiereSelect").value,
+        chapitre: document.getElementById("chapitreSelect").value,
+        risque: document.getElementById("risqueSelect").value,
+        axe: document.getElementById("axeSelect").value,
+        script: editor.getValue(),
+        impots: impotsSelected,
+        autre_taxe: autreTaxe
+    };
+    log.textContent = "⏳ Exécution en cours...";
+    try {
+        const res = await fetch("/valorisation/api/execute", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        log.textContent = result.success ? "✅ "+(result.message||"Script exécuté") : "❌ "+(result.message||"Erreur inconnue");
+        loadHistorique();
+    } catch(e){ log.textContent = "❌ Erreur réseau ou serveur : "+e.message; }
+}
+async function loadHistorique() {
+    const res = await fetch("/valorisation/api/historique");
+    const data = await res.json();
+    const body = document.getElementById("historiqueBody");
+    body.innerHTML="";
+    data.forEach(r=>{
+        body.innerHTML+=`
+        <tr>
+            <td class="id-cell"><span><a href="/analyse/tableur_analyse/${r.nom_fichier}" target="_blank" style="color:white;text-decoration:none;">${r.id}</a></span></td>
+            <td>${r.nom_fichier}</td>
+            <td>${r.risque}</td>
+            <td>${r.axe}</td>
+            <td>${r.impots_inclus||''}</td>
+            <td>${r.utilisateur||"system"}</td>
+            <td>${r.date_generation}</td>
+        </tr>`;
+    });
+}
+document.getElementById("historiqueBody").addEventListener("click", function(e){
+    const cell = e.target.closest(".id-cell");
+    if(!cell) return;
+    const filename = cell.dataset.filename;
+    if(!filename) return;
+    // window.open(`/analyse/tableur_analyse/${filename}`,"_blank");
+	window.location.href = `/analyse/tableur_analyse/${filename}`;
+});
+</script>
+
+</body>
+</html>

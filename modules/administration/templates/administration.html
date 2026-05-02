@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>ADMINISTRATION</title>
+
+<!-- ============================
+     Styles généraux + sidebar
+============================== -->
+<style>
+html, body { margin:0; padding:0; font-family: Arial,sans-serif; background: #f3f4f6; }
+
+/* Bannière fixée en haut */
+.banniere-container { position: fixed; top:0; left:0; width:100%; z-index:1000; }
+.banniere-container img { width:100%; height:auto; display:block; }
+
+/* Variables dynamiques */
+:root { --banner-height:0px; }
+
+/* Sidebar fixe */
+.sidebar {
+    position: fixed;
+    top: var(--banner-height);
+    left:0; bottom:0;
+    width:110px;
+    background-color: #1e293b;
+    overflow-y: auto;
+    padding-top:10px;
+}
+.sidebar a {
+    display:block;
+    margin:10px;
+    padding:10px 5px;
+    text-align:center;
+    color:white;
+    text-decoration:none;
+    font-weight:bold;
+    border-radius:4px;
+    background-color: #127291;
+    font-size:12px;
+}
+.sidebar a:hover { background-color:#0d5a72; }
+
+/* Contenu principal */
+.main-content {
+    margin-left:110px;
+    padding:20px;
+    padding-top: calc(20px + var(--banner-height));
+    overflow-x:auto;
+}
+
+/* Formulaire & boutons */
+select, button, input { padding:8px; margin-top:10px; width:100%; }
+button { background:#2099b6; color:white; border:none; border-radius:4px; cursor:pointer; }
+button:hover { background:#167d94; }
+.form-group { display:flex; flex-direction:column; margin-top:10px; }
+h2,h3 { color:#2099b6; }
+
+#log { margin-top:10px; height:auto; background:white; border:1px solid #ccc; padding:10px; white-space:pre-wrap; font-family: monospace; }
+</style>
+</head>
+
+<body>
+
+<!-- ============================
+     Bannière
+============================== -->
+<div class="banniere-container">
+    <img src="{{ url_for('static', filename='images/administration.jpg') }}" alt="Bannière">
+</div>
+
+<!-- ============================
+     Sidebar
+============================== -->
+<aside class="sidebar">
+    <a href="/">Accueil</a>
+    {% if modules.get("Ingestion") %}<a href="/ingestion">Ingestion</a>{% endif %}
+    {% if modules.get("Apurement") %}<a href="/traitement/editor">Apurement</a>{% endif %}
+    {% if modules.get("Croisement") %}<a href="/analyse">Croisement</a>{% endif %}
+    {% if modules.get("Orientation") %}<a href="/exploitation">Orientation</a>{% endif %}
+    {% if modules.get("Valorisation") %}<a href="/valorisation">Valorisation</a>{% endif %}
+    {% if modules.get("Restitution") %}<a href="/notification">Restitution</a>{% endif %}
+</aside>
+
+<!-- ============================
+     Contenu principal
+============================== -->
+<main class="main-content">
+
+<h3>Gestion des Templates</h3>
+<label>Choisir le template</label>
+<select id="templateSelect"></select>
+<button onclick="downloadTemplate()">Télécharger le template</button>
+
+<div class="form-group">
+    <label>Sélectionner sur votre disque</label>
+    <input type="file" id="fileTemplateInput" accept=".docx">
+</div>
+
+<button onclick="updateTemplate()">Actualiser le template</button>
+
+<hr>
+
+<h3>Gestion des Référentiels</h3>
+<label>Choisir le référentiel</label>
+<select id="fichierSelect"></select>
+<button onclick="downloadFichier()">Télécharger le référentiel</button>
+
+<div class="form-group">
+    <label>Sélectionner sur votre disque</label>
+    <input type="file" id="fileFichierInput" accept=".docx">
+</div>
+
+<button onclick="updateFichier()">Actualiser le référentiel</button>
+
+<div id="log"></div>
+
+<hr>
+
+<h4>Elaboré par:</h4>
+
+<hr>
+<div <label>Samuel TCHIOUTCHOUA LENOU</label> </div>
+<div <label>Ingénieur Statisticien Economiste</label> </div>
+<div <label>Expert en modélisation macroéconomique et fiscale </label> </div>
+<div <label>samuel.lenou@yahoo.fr</label> </div>
+
+<hr>
+<div <label>Paul Longin ETOGO</label> </div>
+<div <label>Inspecteur Principal des Impôts de classe exceptionnelle</label> </div>
+<div <label>Docteur/Phd en droit public</label> </div>
+
+<hr>
+<div <label>Fils Bernard NTONGA</label> </div>
+<div <label>Inspecteur Principal des Impôts</label> </div>
+
+<hr>
+<img src="{{ url_for('static', filename='images/admin.jpg') }}" alt="Admin" style="width:100%; height:auto; display:block;">
+
+
+
+</main>
+
+<script>
+// ============================
+// Ajustement bannière dynamique
+// ============================
+function adjustLayout() {
+    const banner = document.querySelector(".banniere-container");
+    if(banner){
+        const height = banner.offsetHeight + "px";
+        document.documentElement.style.setProperty("--banner-height", height);
+    }
+}
+window.addEventListener("load", adjustLayout);
+window.addEventListener("resize", adjustLayout);
+
+// ============================
+// Chargement des listes avec log
+// ============================
+async function loadTemplates() {
+    const log = document.getElementById("log");
+    try {
+        const res = await fetch("/administration/api/templates");
+        log.textContent = "Réponse API Templates: " + res.status;
+        const data = await res.json();
+        log.textContent += "\nDonnées reçues: " + JSON.stringify(data, null, 2);
+        const select = document.getElementById("templateSelect");
+        select.innerHTML = "<option value=''>-- Sélectionner --</option>";
+        data.forEach(f => select.innerHTML += `<option value="${f}">${f}</option>`);
+    } catch(e){
+        log.textContent = "Erreur fetch templates: " + e.message;
+    }
+}
+
+async function loadFichiers() {
+    const log = document.getElementById("log");
+    try {
+        const res = await fetch("/administration/api/fichiers");
+        log.textContent += "\nRéponse API Fichiers: " + res.status;
+        const data = await res.json();
+        log.textContent += "\nDonnées reçues: " + JSON.stringify(data, null, 2);
+        const select = document.getElementById("fichierSelect");
+        select.innerHTML = "<option value=''>-- Sélectionner --</option>";
+        data.forEach(f => select.innerHTML += `<option value="${f}">${f}</option>`);
+    } catch(e){
+        log.textContent += "\nErreur fetch fichiers: " + e.message;
+    }
+}
+
+// ============================
+// Télécharger
+// ============================
+function downloadTemplate() {
+    const filename = document.getElementById("templateSelect").value;
+    if(!filename){ alert("Sélectionnez un template"); return; }
+    window.location.href = `/administration/download/template/${encodeURIComponent(filename)}`;
+}
+
+function downloadFichier() {
+    const filename = document.getElementById("fichierSelect").value;
+    if(!filename){ alert("Sélectionnez un fichier"); return; }
+    window.location.href = `/administration/download/fichier/${encodeURIComponent(filename)}`;
+}
+
+// ============================
+// Actualiser
+// ============================
+async function updateTemplate() {
+    const fileInput = document.getElementById("fileTemplateInput");
+    const filename = document.getElementById("templateSelect").value;
+    const log = document.getElementById("log");
+    if(!fileInput.files.length || !filename){ log.textContent="❌ Sélectionnez un fichier et un template"; return; }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    log.textContent="⏳ Actualisation en cours...";
+    try {
+        const res = await fetch(`/administration/update/template/${encodeURIComponent(filename)}`, {method:"POST", body: formData});
+        const result = await res.json();
+        log.textContent = result.success ? "✅ "+result.message : "❌ "+result.message;
+        loadTemplates();
+    } catch(e){ log.textContent="❌ Erreur : "+e.message; }
+}
+
+async function updateFichier() {
+    const fileInput = document.getElementById("fileFichierInput");
+    const filename = document.getElementById("fichierSelect").value;
+    const log = document.getElementById("log");
+    if(!fileInput.files.length || !filename){ log.textContent="❌ Sélectionnez un fichier et un référentiel"; return; }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    log.textContent="⏳ Actualisation en cours...";
+    try {
+        const res = await fetch(`/administration/update/fichier/${encodeURIComponent(filename)}`, {method:"POST", body: formData});
+        const result = await res.json();
+        log.textContent = result.success ? "✅ "+result.message : "❌ "+result.message;
+        loadFichiers();
+    } catch(e){ log.textContent="❌ Erreur : "+e.message; }
+}
+
+// ============================
+// Init
+// ============================
+document.addEventListener("DOMContentLoaded", ()=>{
+    loadTemplates();
+    loadFichiers();
+});
+</script>
+
+</body>
+</html>

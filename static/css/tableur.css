@@ -1,0 +1,118 @@
+/* ===============================
+   STRUCTURE GÉNÉRALE
+================================= */
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f3f4f6;
+    margin: 0;
+}
+
+/* ===============================
+   CONTENEUR TABLEUR
+================================= */
+
+#excelContainer {
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    overflow-y: auto;      /* Scroll vertical uniquement */
+    overflow-x: visible;   /* Important */
+    max-height: 75vh;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+/* ===============================
+   TABLE
+================================= */
+
+table {
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 100%;
+}
+
+/* ===============================
+   CELLULES
+================================= */
+
+th, td {
+    border: 1px solid #e5e7eb;
+    padding: 6px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+/* ===============================
+   EN-TÊTES FIGÉS (LIGNE 1)
+================================= */
+
+thead th {
+    background: #1e293b;
+    color: white;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+/* ===============================
+   PREMIÈRE COLONNE FIGÉE
+================================= */
+
+th:first-child,
+td:first-child {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 4;
+    font-weight: 600;
+}
+
+/* Coin supérieur gauche */
+thead th:first-child {
+    z-index: 6;
+}
+
+/* ===============================
+   ALIGNEMENTS
+================================= */
+
+td {
+    text-align: right;
+}
+
+td:first-child {
+    text-align: left;
+}
+
+/* ===============================
+   EFFET HOVER
+================================= */
+
+tbody tr:hover td {
+    background-color: #f1f5f9;
+}
+
+/* ===============================
+   SCROLL PERSONNALISÉ
+================================= */
+
+#excelContainer::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+
+#excelContainer::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 5px;
+}
+
+#excelContainer::-webkit-scrollbar-track {
+    background: #e2e8f0;
+}
+
+.main-content {
+    overflow-x: auto;
+    position: relative;
+}

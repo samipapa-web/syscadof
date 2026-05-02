@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SYSCADOF - Notification</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.15.0/ace.js"></script>
+
+<style>
+/* ============================
+   Structure générale
+============================ */
+html, body { margin:0; padding:0; font-family: Arial, sans-serif; background: #f3f4f6; }
+
+/* Bannière fixée en haut */
+.banniere-container {
+    position: fixed;
+    top:0; left:0; width:100%; z-index:1000;
+}
+.banniere-container img {
+    width:100%; height:auto; display:block;
+}
+
+/* Variables dynamiques */
+:root { --banner-height:0px; }
+
+/* Sidebar fixe */
+.sidebar {
+    position: fixed;
+    top: var(--banner-height);
+    left:0; bottom:0;
+    width:110px;
+    background-color: #1e293b;
+    overflow-y: auto;
+    padding-top:10px;
+}
+.sidebar a {
+    display:block;
+    margin:10px;
+    padding:10px 5px;
+    text-align:center;
+    color:white;
+    text-decoration:none;
+    font-weight:bold;
+    border-radius:4px;
+    background-color: #127291;
+    font-size:12px;
+}
+.sidebar a:hover { background-color:#0d5a72; }
+
+/* Contenu principal */
+.main-content {
+    margin-left:110px;
+    padding:20px;
+    padding-top: calc(20px + var(--banner-height));
+    overflow-x:auto;
+}
+
+/* Formulaire */
+h3 { color:#2099b6; }
+select, input { padding:6px; margin:5px 0; width:100%; }
+button { padding:6px 12px; background:#2099b6; color:white; border:none; cursor:pointer; border-radius:4px; margin-top:5px; }
+button:hover { background:#167d94; }
+.form-grid { display:flex; flex-direction:column; gap:12px; margin-top:15px; margin-bottom:15px; }
+.form-row { display:grid; grid-template-columns:230px 1fr; align-items:center; gap:15px; }
+.form-row label { font-weight:bold; }
+
+/* Table */
+table { width:100%; border-collapse: collapse; margin-top:20px; background:white; }
+th { background:#2099b6; color:white; padding:10px; text-align:center; }
+td { padding:8px; border-bottom:1px solid #ddd; text-align:center; }
+.separator { border:none; border-top:2px solid #2099b6; margin:40px 0 10px 0; }
+#log { margin-top:10px; height:30px; background:white; border:1px solid #ccc; padding:10px; overflow-y:auto; white-space:pre-wrap; font-family: monospace; }
+.open-btn { display:inline-block; padding:4px 8px; background-color:#2099b6; color:white; border-radius:4px; text-decoration:none; font-size:0.9rem; }
+.open-btn:hover { background-color:#167d94; }
+</style>
+</head>
+
+<body>
+
+<div class="banniere-container">
+    <img src="{{ url_for('static', filename='images/notification.jpg') }}" alt="Notification">
+</div>
+
+<aside class="sidebar">
+    <a href="/">Accueil</a>
+
+    {% if modules.get("Ingestion") %}<a href="/ingestion">Ingestion</a>{% endif %}
+    {% if modules.get("Apurement") %}<a href="/traitement/editor">Apurement</a>{% endif %}
+    {% if modules.get("Croisement") %}<a href="/analyse">Croisement</a>{% endif %}
+    {% if modules.get("Orientation") %}<a href="/exploitation">Orientation</a>{% endif %}
+    {% if modules.get("Valorisation") %}<a href="/valorisation">Valorisation</a>{% endif %}
+    {% if modules.get("Restitution") %}<a href="/notification">Restitution</a>{% endif %}
+    {% if modules.get("Restitution") %}<a href="/revue">Revue</a>{% endif %}
+</aside>
+
+<main class="main-content">
+
+    <h3>Paramétrage des notifications</h3>
+    <div class="form-grid">
+        <div class="form-row"><label for="fichierSelect">Fichier à exploiter</label><select id="fichierSelect"></select></div>
+        <div class="form-row"><label for="scriptSelect">Type de notification</label><select id="scriptSelect"></select></div>
+        <div class="form-row"><label for="modeleSelect">Modèle de notification</label><select id="modeleSelect"></select></div>
+        <div class="form-row"><label for="niuInput">NIU</label><input type="text" id="niuInput" placeholder="Saisir NIU"></div>
+        <div class="form-row"><label for="typePersonneSelect">Type d'entité</label><select id="typePersonneSelect"></select></div>
+        <div class="form-row"><label for="criSelect">Région fiscale</label><select id="criSelect"></select></div>
+        <div class="form-row"><label for="centreSelect">Unité de gestion</label><select id="centreSelect"></select></div>
+    </div>
+
+    <button onclick="executeNotification()">Générer les notifications</button>
+	<button onclick="ouvrirNouveauModele()">Créer un modèle</button>
+    <div id="log"></div>
+
+    <hr class="separator">
+    <h3>Historique des notifications générées</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Fichier généré</th>
+                <th>Type notification</th>
+                <th>Responsable</th>
+                <th>Date création</th>
+                <th>Ouvrir</th>
+            </tr>
+        </thead>
+        <tbody id="historiqueBody"></tbody>
+    </table>
+
+</main>
+
+<script>
+// ============================
+// Ajustement bannière dynamique
+// ============================
+function adjustLayout() {
+    const banner = document.querySelector(".banniere-container");
+    if (banner) {
+        const height = banner.offsetHeight + "px";
+        document.documentElement.style.setProperty("--banner-height", height);
+    }
+}
+window.addEventListener("load", adjustLayout);
+window.addEventListener("resize", adjustLayout);
+
+// ============================
+// Initialisation des selects et historique
+// ============================
+document.addEventListener("DOMContentLoaded", () => {
+    initSelects();
+    loadHistorique();
+    document.getElementById("scriptSelect").addEventListener("change", loadModeles);
+});
+
+async function initSelects() {
+    try {
+        const res = await fetch("/notification/api/init");
+        const data = await res.json();
+
+        populateSelect("fichierSelect", data.files);
+        populateSelect("centreSelect", data.centres);
+        populateSelect("criSelect", data.cris);
+        populateSelect("typePersonneSelect", ["P","M"]);
+        populateSelect("scriptSelect", data.types_notif);
+
+    } catch(e) { console.error(e); }
+}
+
+// ============================
+// Chargement dynamique modèles
+// ============================
+async function loadModeles() {
+    const type = document.getElementById("scriptSelect").value;
+    if(!type){ populateSelect("modeleSelect", []); return; }
+    try {
+        const res = await fetch(`/notification/api/modeles?type=${encodeURIComponent(type)}`);
+        const data = await res.json();
+        populateSelect("modeleSelect", data);
+    } catch(e) { console.error(e); }
+}
+
+// ============================
+// Utils
+// ============================
+function populateSelect(id, items) {
+    const select = document.getElementById(id);
+    if(!select) return;
+    select.innerHTML = "<option value=''>-- Sélectionner --</option>";
+    items.forEach(i => { select.innerHTML += `<option value="${i}">${i}</option>`; });
+}
+
+// ============================
+// Exécution script
+// ============================
+async function executeNotification() {
+    const payload = {
+        fichier: document.getElementById("fichierSelect").value,
+        niu: document.getElementById("niuInput").value,
+        centre: document.getElementById("centreSelect").value,
+        cri: document.getElementById("criSelect").value,
+        type_personne: document.getElementById("typePersonneSelect").value,
+        type_notification: document.getElementById("scriptSelect").value,
+        modele: document.getElementById("modeleSelect").value
+    };
+    const log = document.getElementById("log");
+    log.textContent = "⏳ Exécution en cours...";
+    try {
+        const res = await fetch("/notification/api/execute", {
+            method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+        });
+        const result = await res.json();
+        log.textContent = result.success ? "✅ " + result.message : "❌ " + result.message;
+        if(result.success) loadHistorique();
+    } catch(e){ log.textContent = "❌ Erreur serveur : " + e.message; }
+}
+
+// ============================
+// Historique avec ouverture PDF.html
+// ============================
+async function loadHistorique() {
+    try {
+        const res = await fetch("/notification/api/historique");
+        const data = await res.json();
+        const tbody = document.getElementById("historiqueBody");
+        tbody.innerHTML = "";
+        data.forEach(r => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>
+					    <button class="open-btn" onclick="telechargerFichier('${r.nom_fichier}')">
+					        ${r.id}
+					    </button>
+					</td>
+                    <td>${r.nom_fichier}</td>
+                    <td>${r.type_notification || ''}</td>
+                    <td>${r.utilisateur || 'system'}</td>
+                    <td>${r.date_creation || ''}</td>
+                    <td>
+                        <button class="open-btn" onclick="ouvrirPDF('${r.nom_fichier}')">Ouvrir</button>
+                    </td>
+                </tr>`;
+        });
+    } catch(e){ console.error(e); }
+}
+
+// ============================
+// Telecharger le fichier Word
+// ============================
+function telechargerFichier(nomFichier) {
+    window.open(`/notification/download/${encodeURIComponent(nomFichier)}`, "_blank");
+}
+
+// ============================
+// Ouvrir PDF via PDF.html
+// ============================
+function ouvrirPDF(nomFichier) {
+    window.open(`/notification/pdf/${encodeURIComponent(nomFichier)}`, "_blank");
+}
+
+// ============================
+// Ouvrir Modele
+// ============================
+function ouvrirNouveauModele() {
+    let modele = document.getElementById("modeleSelect").value;
+
+    if (!modele) {
+        alert("Veuillez sélectionner un modèle de notification.");
+        return;
+    }
+
+    // ✅ Ajouter automatiquement .docx si absent
+    if (!modele.endsWith(".docx")) {
+        modele += ".docx";
+    }
+
+    // ✅ Redirection avec le bon nom
+    // window.open(`/notification/doc?modele=${encodeURIComponent(modele)}`, "_blank");
+	window.location.href = `/notification/doc?modele=${encodeURIComponent(modele)}`;
+}
+
+</script>
+
+</body>
+</html>

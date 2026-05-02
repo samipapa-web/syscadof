@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SYSCADOF - Revue</title>
+
+<style>
+/* ============================
+   Structure générale
+============================ */
+html, body { margin:0; padding:0; font-family: Arial; background:#f3f4f6; }
+
+/* ============================
+   Bannière
+============================ */
+.banniere-container {
+    position: fixed;
+    top:0; left:0; width:100%;
+    z-index:1000;
+}
+.banniere-container img {
+    width:100%;
+    height:auto;
+    display:block;
+}
+
+/* Variable dynamique */
+:root { --banner-height:0px; }
+
+/* ============================
+   Sidebar
+============================ */
+.sidebar {
+    position: fixed;
+    top: var(--banner-height);
+    left:0;
+    bottom:0;
+    width:110px;
+    background:#1e293b;
+    padding-top:10px;
+}
+.sidebar a {
+    display:block;
+    margin:10px;
+    padding:10px;
+    color:white;
+    text-decoration:none;
+    background:#127291;
+    border-radius:4px;
+}
+
+/* ============================
+   Contenu principal
+============================ */
+.main {
+    margin-left:110px;
+    padding:20px;
+    padding-top: calc(20px + var(--banner-height));
+}
+
+/* ============================
+   Bouton
+============================ */
+button {
+    background:#2099b6;
+    color:white;
+    border:none;
+    padding:8px;
+    cursor:pointer;
+}
+button:hover {
+    background:#167d94;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ============================
+     Bannière
+============================ -->
+<div class="banniere-container">
+    <img src="{{ url_for('static', filename='images/revue.jpg') }}" alt="Revue">
+</div>
+
+<!-- ============================
+     Sidebar
+============================ -->
+<aside class="sidebar">
+    <a href="/">Accueil</a>
+    <a href="/revue">Revue</a>
+</aside>
+
+<!-- ============================
+     Contenu principal
+============================ -->
+<div class="main">
+
+<h3>Revue des risques par structure ou NIU</h3>
+
+<select id="cri"></select>
+<select id="centre"></select>
+<input type="text" id="niu" placeholder="NIU">
+
+<button onclick="executer()">Executer</button>
+
+<div id="log"></div>
+
+</div>
+
+<script>
+
+// ============================
+// Ajustement dynamique bannière
+// ============================
+function adjustLayout() {
+    const banner = document.querySelector(".banniere-container");
+    if (banner) {
+        const height = banner.offsetHeight + "px";
+        document.documentElement.style.setProperty("--banner-height", height);
+    }
+}
+
+window.addEventListener("load", adjustLayout);
+window.addEventListener("resize", adjustLayout);
+
+// ============================
+// Initialisation
+// ============================
+document.addEventListener("DOMContentLoaded", async () => {
+    const res = await fetch("/revue/api/init");
+    const data = await res.json();
+
+    remplir("cri", data.cris);
+    remplir("centre", data.centres);
+});
+
+// ============================
+// Remplir select
+// ============================
+function remplir(id, data){
+    const el = document.getElementById(id);
+    el.innerHTML = "<option value=''>--</option>";
+    data.forEach(x => el.innerHTML += `<option>${x}</option>`);
+}
+
+// ============================
+// Exécution
+// ============================
+async function executer(){
+    const payload = {
+        niu: document.getElementById("niu").value,
+        cri: document.getElementById("cri").value,
+        centre: document.getElementById("centre").value
+    };
+
+    const log = document.getElementById("log");
+    log.innerText = "⏳ traitement...";
+
+    const res = await fetch("/revue/api/run", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+    });
+
+    const r = await res.json();
+
+    if(r.success){
+        log.innerHTML = `
+            ✅ ${r.message}<br><br>
+            <a href="/revue/download/${r.excel}" target="_blank">📥 Excel</a><br>
+            <a href="/revue/download/${r.docx}" target="_blank">📄 Word</a>
+        `;
+    } else {
+        log.innerText = "❌ " + r.message;
+    }
+}
+
+</script>
+
+</body>
+</html>

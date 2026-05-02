@@ -1,0 +1,167 @@
+/* ============================
+   Styles généraux
+   ============================ */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f3f4f6;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+.page-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ============================
+   Sidebar gauche
+   ============================ */
+.sidebar.left {
+    width: 200px;
+    background-color: #1e293b;
+}
+
+/* ============================
+   Contenu principal
+   ============================ */
+.content {
+    flex: 1;
+    padding: 30px;
+}
+
+/* Titres */
+h1 {
+    color: #2099b6;
+    font-size: 1.7rem;
+    margin-top: 0;
+}
+
+h2 {
+    color: #1f2937;
+    margin-top: 30px;
+    font-size: 1.2rem;
+}
+
+/* Sous-titres */
+.form-subtitle {
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* ============================
+   Formulaires
+   ============================ */
+form label {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+}
+
+form input[type="number"],
+form select,
+form input[type="file"] {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+form button {
+    margin-top: 20px;
+    background-color: #2099b6;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+form button:hover {
+    background-color: #127291;
+}
+
+/* ============================
+   Tableau des sources
+   ============================ */
+.table-sources {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.table-sources th,
+.table-sources td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+}
+
+.table-sources th {
+    background-color: #2099b6;
+    color: white;
+}
+
+.btn-download {
+    display: inline-block;
+    background-color: #2099b6;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.btn-download:hover {
+    background-color: #127291;
+}
+
+/* ============================
+   Messages
+   ============================ */
+#message {
+    margin-top: 20px;
+    font-weight: bold;
+}
+
+/* ============================
+   Double separator
+   ============================ */
+.double-separator {
+    height: 30px;
+}
+
+/* ============================
+   Banniere
+   ============================ */
+.banniere-container {
+    width: 100%;
+    text-align: center;
+    background-color: #e0f2f1;
+    margin-bottom: 0;
+}
+
+.banniere-container img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ============================
+   Réactivité
+   ============================ */
+@media screen and (max-width: 768px) {
+    .page-container {
+        flex-direction: column;
+    }
+
+    .sidebar.left {
+        width: 100%;
+        height: 50px;
+    }
+
+    .content {
+        padding: 15px;
+    }
+}
